@@ -1,0 +1,121 @@
+.container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
+}
+
+.content {
+    width: 100%;
+    max-width: 400px;
+    background: white;
+    border-radius: 20px;
+    padding: 40px 30px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.title {
+    font-size: 42px;
+    font-weight: 700;
+    text-align: center;
+    margin: 0 0 40px 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 2px;
+}
+
+.formSection {
+    margin-bottom: 30px;
+}
+
+.input {
+    width: 100%;
+    padding: 16px 20px;
+    font-size: 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    outline: none;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+.input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.button {
+    width: 100%;
+    padding: 16px;
+    font-size: 18px;
+    font-weight: 600;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.buttonPrimary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.buttonPrimary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+}
+
+.buttonPrimary:active {
+    transform: translateY(0);
+}
+
+.buttonSecondary {
+    background: #f5f5f5;
+    color: #667eea;
+    border: 2px solid #667eea;
+}
+
+.buttonSecondary:hover {
+    background: #667eea;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.joinForm {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+@media (max-width: 480px) {
+    .content {
+        padding: 30px 20px;
+    }
+
+    .title {
+        font-size: 36px;
+        margin-bottom: 30px;
+    }
+
+    .input {
+        padding: 14px 18px;
+        font-size: 15px;
+    }
+
+    .button {
+        padding: 14px;
+        font-size: 16px;
+    }
+}

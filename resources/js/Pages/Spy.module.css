@@ -1,0 +1,339 @@
+/* Экран карточки */
+.cardContainer {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
+}
+
+.card {
+    width: 100%;
+    max-width: 400px;
+    background: white;
+    border-radius: 24px;
+    padding: 50px 30px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    text-align: center;
+    animation: cardReveal 0.5s ease-out;
+}
+
+@keyframes cardReveal {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.cardIcon {
+    font-size: 80px;
+    margin-bottom: 20px;
+}
+
+.cardTitle {
+    font-size: 32px;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.cardLocation {
+    font-size: 48px;
+    font-weight: 700;
+    color: #667eea;
+    margin: 20px 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.cardDescription {
+    font-size: 18px;
+    color: #666;
+    line-height: 1.6;
+    margin-top: 20px;
+}
+
+/* Основной экран игры */
+.container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
+}
+
+.content {
+    width: 100%;
+    max-width: 500px;
+    background: white;
+    border-radius: 20px;
+    padding: 30px 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.title {
+    font-size: 36px;
+    font-weight: 700;
+    margin: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 2px;
+}
+
+.gameInfo {
+    margin: 25px 0;
+    padding: 20px;
+    background: #f9f9f9;
+    border-radius: 16px;
+    border: 2px solid #e0e0e0;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.gameInfo.blurred {
+    filter: blur(12px) brightness(0.5);
+    -webkit-filter: blur(12px) brightness(0.5);
+    transform: scaleX(-1);
+    opacity: 0.6;
+    user-select: none;
+    pointer-events: auto;
+}
+
+.gameInfo.blurred:hover {
+    filter: blur(10px) brightness(0.6);
+    -webkit-filter: blur(10px) brightness(0.6);
+    opacity: 0.7;
+}
+
+.gameInfo.blurred * {
+    pointer-events: none;
+}
+
+.spyInfo {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.locationInfo {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.infoIcon {
+    font-size: 48px;
+    flex-shrink: 0;
+}
+
+.infoText {
+    flex: 1;
+    font-size: 16px;
+    line-height: 1.6;
+    color: #333;
+}
+
+.infoText strong {
+    color: #667eea;
+    font-weight: 700;
+}
+
+.locationName {
+    font-size: 24px;
+    font-weight: 700;
+    color: #667eea;
+    display: block;
+    margin-top: 8px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.playersSection {
+    margin: 25px 0;
+}
+
+.playersTitle {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0 0 15px 0;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.readyCount {
+    font-size: 16px;
+    font-weight: 500;
+    color: #51cf66;
+}
+
+.playersList {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.playerCard {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: #f5f5f5;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.playerCard.ready {
+    background: rgba(81, 207, 102, 0.1);
+    border: 1px solid rgba(81, 207, 102, 0.3);
+}
+
+.playerAvatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.playerName {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    flex: 1;
+}
+
+.readyIndicator {
+    color: #51cf66;
+    font-size: 20px;
+    font-weight: 700;
+    margin-left: auto;
+}
+
+.instructions {
+    margin: 25px 0;
+    padding: 15px;
+    background: rgba(102, 126, 234, 0.1);
+    border-radius: 12px;
+    text-align: center;
+}
+
+.instructions p {
+    margin: 0;
+    font-size: 15px;
+    color: #666;
+    line-height: 1.6;
+}
+
+.instructions strong {
+    color: #667eea;
+    font-weight: 700;
+}
+
+.actions {
+    margin-top: 30px;
+}
+
+.votingButton {
+    width: 100%;
+    padding: 18px;
+    font-size: 18px;
+    font-weight: 700;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.votingButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+}
+
+.votingButton:active {
+    transform: translateY(0);
+}
+
+.votingButton:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.votingButton.voted {
+    background: linear-gradient(135deg, #51cf66 0%, #40c057 100%);
+}
+
+
+@media (max-width: 480px) {
+    .card {
+        padding: 40px 20px;
+    }
+
+    .cardIcon {
+        font-size: 60px;
+    }
+
+    .cardTitle {
+        font-size: 28px;
+    }
+
+    .cardLocation {
+        font-size: 36px;
+    }
+
+    .cardDescription {
+        font-size: 16px;
+    }
+
+    .content {
+        padding: 20px 15px;
+    }
+
+    .title {
+        font-size: 30px;
+    }
+
+    .infoIcon {
+        font-size: 40px;
+    }
+
+    .locationName {
+        font-size: 20px;
+    }
+
+    .votingButton {
+        padding: 16px;
+        font-size: 16px;
+    }
+}
