@@ -245,6 +245,41 @@
     box-shadow: 0 2px 4px rgba(76, 175, 80, 0.3);
 }
 
+.tieMessage {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.tieIcon {
+    font-size: 80px;
+    margin-bottom: 30px;
+    animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}
+
+.tieTitle {
+    font-size: 32px;
+    font-weight: 900;
+    color: #ff6b6b;
+    margin: 0 0 20px 0;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.tieSubtitle {
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+    line-height: 1.6;
+}
+
 @media (max-width: 480px) {
     .content {
         padding: 20px 15px;
@@ -288,5 +323,18 @@
 
     .voterItem {
         font-size: 13px;
+    }
+
+    .tieTitle {
+        font-size: 24px;
+        letter-spacing: 2px;
+    }
+
+    .tieSubtitle {
+        font-size: 18px;
+    }
+
+    .tieIcon {
+        font-size: 60px;
     }
 }

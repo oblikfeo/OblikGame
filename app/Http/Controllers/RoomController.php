@@ -9,6 +9,8 @@ use Inertia\Inertia;
 use App\Events\PlayerJoined;
 use App\Events\PlayerLeft;
 use App\Events\GameStarted;
+use App\Events\GameSelectionStarted;
+use App\Events\GameRulesOpened;
 
 class RoomController extends Controller
 {
@@ -17,7 +19,7 @@ class RoomController extends Controller
      */
     public function getPlayers(Request $request, string $roomCode)
     {
-        $roomCode = strtoupper($roomCode);
+        // Код комнаты теперь только цифры, убираем strtoupper
         $players = Cache::get("room_{$roomCode}_players", []);
         
         return response()->json(['players' => array_values($players)]);
@@ -62,7 +64,16 @@ class RoomController extends Controller
      */
     public function create(Request $request)
     {
-        $roomCode = strtoupper(Str::random(6));
+        // Генерируем 3-значный числовой код (100-999)
+        $maxAttempts = 10;
+        $attempts = 0;
+        do {
+            $roomCode = str_pad(rand(100, 999), 3, '0', STR_PAD_LEFT);
+            // Проверяем, что комната не существует (для избежания коллизий)
+            $existingRoom = Cache::get("room_{$roomCode}_players", []);
+            $attempts++;
+        } while (!empty($existingRoom) && $attempts < $maxAttempts); // Если комната существует, генерируем новый код (максимум 10 попыток)
+        
         $playerId = Str::uuid()->toString();
         $playerName = $request->input('playerName', 'Игрок 1');
         
@@ -94,7 +105,19 @@ class RoomController extends Controller
      */
     public function join(Request $request)
     {
-        $roomCode = strtoupper($request->input('roomCode'));
+        $roomCode = $request->input('roomCode');
+        
+        // Валидация: код должен быть 3 цифры
+        if (!preg_match('/^\d{3}$/', $roomCode)) {
+            return back()->withErrors(['roomCode' => 'Код комнаты должен состоять из 3 цифр']);
+        }
+        
+        // Проверяем, существует ли комната
+        $players = Cache::get("room_{$roomCode}_players", []);
+        if (empty($players)) {
+            return back()->withErrors(['roomCode' => 'Комната с таким кодом не найдена']);
+        }
+        
         $playerId = Str::uuid()->toString();
         $playerName = $request->input('playerName', 'Игрок');
         
@@ -125,7 +148,10 @@ class RoomController extends Controller
      */
     public function show(Request $request, string $roomCode)
     {
-        $roomCode = strtoupper($roomCode);
+        // Валидация: код должен быть 3 цифры
+        if (!preg_match('/^\d{3}$/', $roomCode)) {
+            return redirect()->route('lobby')->withErrors(['roomCode' => 'Неверный код комнаты']);
+        }
         
         // Получаем данные из query параметров или сессии
         $playerId = $request->query('playerId') ?? session("room_{$roomCode}_last_player_id");
@@ -187,7 +213,7 @@ class RoomController extends Controller
      */
     public function leave(Request $request)
     {
-        $roomCode = strtoupper($request->input('roomCode'));
+        $roomCode = $request->input('roomCode');
         $playerId = $request->input('playerId');
         
         if (!$roomCode || !$playerId) {
@@ -197,6 +223,15 @@ class RoomController extends Controller
         // Удаляем игрока из кеша
         $this->removePlayerFromRoom($roomCode, $playerId);
         
+        // Удаляем игрока из списка готовых к старту (если есть)
+        $readyToStart = Cache::get("spy_ready_to_start_{$roomCode}", []);
+        if (in_array($playerId, $readyToStart)) {
+            $readyToStart = array_values(array_filter($readyToStart, function($id) use ($playerId) {
+                return $id !== $playerId;
+            }));
+            Cache::put("spy_ready_to_start_{$roomCode}", $readyToStart, now()->addHours(2));
+        }
+        
         // Отправляем событие о выходе игрока
         \Log::info('Отправка события PlayerLeft', ['roomCode' => $roomCode, 'playerId' => $playerId]);
         broadcast(new PlayerLeft($roomCode, $playerId));
@@ -205,14 +240,14 @@ class RoomController extends Controller
     }
 
     /**
-     * Запустить игру
+     * Запустить игру (переход на страницу выбора игр)
      */
     public function start(Request $request)
     {
-        $roomCode = strtoupper($request->input('roomCode'));
+        $roomCode = $request->input('roomCode');
         
-        // Отправляем событие о начале игры
-        broadcast(new GameStarted($roomCode));
+        // Отправляем событие о переходе на страницу выбора игр
+        broadcast(new GameSelectionStarted($roomCode));
         
         return response()->json(['success' => true]);
     }
@@ -222,7 +257,7 @@ class RoomController extends Controller
      */
     public function showGameSelection(Request $request, string $roomCode)
     {
-        $roomCode = strtoupper($roomCode);
+        // Код комнаты теперь только цифры
         
         // Получаем данные из query параметров или сессии
         $playerId = $request->query('playerId') ?? session("room_{$roomCode}_last_player_id");
@@ -275,5 +310,23 @@ class RoomController extends Controller
             'isHost' => $isHost,
             'players' => $players,
         ]);
+    }
+
+    /**
+     * Выбрать игру (отправляет событие для всех игроков)
+     */
+    public function selectGame(Request $request, string $roomCode)
+    {
+        // Код комнаты теперь только цифры
+        $gameId = $request->input('gameId');
+        
+        if (!$gameId) {
+            return response()->json(['error' => 'Не указана игра'], 400);
+        }
+        
+        // Отправляем событие о переходе на страницу правил выбранной игры
+        broadcast(new GameRulesOpened($roomCode, $gameId));
+        
+        return response()->json(['success' => true]);
     }
 }

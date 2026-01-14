@@ -1,0 +1,258 @@
+.container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
+}
+
+.content {
+    width: 100%;
+    max-width: 500px;
+    background: white;
+    border-radius: 20px;
+    padding: 30px 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.title {
+    font-size: 36px;
+    font-weight: 700;
+    margin: 0 0 10px 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 2px;
+}
+
+.subtitle {
+    font-size: 16px;
+    color: #666;
+    margin: 0;
+}
+
+.message {
+    text-align: center;
+    padding: 30px 20px;
+}
+
+.messageIcon {
+    font-size: 64px;
+    margin-bottom: 15px;
+}
+
+.messageTitle {
+    font-size: 20px;
+    color: #666;
+    margin-bottom: 15px;
+    font-weight: 500;
+}
+
+.messagePlayerName {
+    font-size: 36px;
+    font-weight: 700;
+    color: #333;
+    margin: 15px 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.messageStatus {
+    font-size: 24px;
+    margin-top: 20px;
+    padding: 15px;
+    border-radius: 12px;
+    color: #666;
+}
+
+.messageText {
+    margin-top: 20px;
+    color: #666;
+    font-size: 16px;
+}
+
+.guessSection {
+    margin: 25px 0;
+}
+
+.label {
+    display: block;
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.input {
+    width: 100%;
+    padding: 15px;
+    font-size: 18px;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    text-align: center;
+    transition: border-color 0.3s ease;
+}
+
+.input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.submitButton {
+    width: 100%;
+    padding: 18px;
+    font-size: 18px;
+    font-weight: 700;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.submitButton:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+}
+
+.submitButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.waitingSection {
+    text-align: center;
+    padding: 30px 20px;
+}
+
+.waitingIcon {
+    font-size: 64px;
+    margin-bottom: 15px;
+}
+
+.waitingText {
+    font-size: 16px;
+    color: #666;
+    margin: 10px 0;
+    line-height: 1.6;
+}
+
+.waitingText strong {
+    color: #667eea;
+    font-weight: 700;
+}
+
+.votingSection {
+    margin: 25px 0;
+    text-align: center;
+}
+
+.votingQuestion {
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 30px;
+}
+
+.votingButtons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.voteButton {
+    flex: 1;
+    padding: 20px;
+    font-size: 20px;
+    font-weight: 700;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.yesButton {
+    background: linear-gradient(135deg, #51cf66 0%, #40c057 100%);
+    color: white;
+}
+
+.yesButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(81, 207, 102, 0.4);
+}
+
+.noButton {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+    color: white;
+}
+
+.noButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(255, 107, 107, 0.4);
+}
+
+.resultSection {
+    margin-top: 30px;
+    padding: 25px;
+    background: #f9f9f9;
+    border-radius: 16px;
+    text-align: center;
+}
+
+.resultIcon {
+    font-size: 64px;
+    margin-bottom: 15px;
+}
+
+.resultTitle {
+    font-size: 28px;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.resultText {
+    font-size: 16px;
+    color: #666;
+    line-height: 1.6;
+}
+
+.resultText strong {
+    color: #667eea;
+    font-weight: 700;
+    font-size: 20px;
+}
+
+@media (max-width: 480px) {
+    .content {
+        padding: 20px 15px;
+    }
+
+    .title {
+        font-size: 30px;
+    }
+
+    .votingButtons {
+        flex-direction: column;
+    }
+
+    .voteButton {
+        width: 100%;
+    }
+}

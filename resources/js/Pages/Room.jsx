@@ -94,6 +94,13 @@ export default function Room({ roomCode, playerId, isHost, players: initialPlaye
                 console.log('🎮 Игра началась!');
                 alert('Игра началась!');
             })
+            .listen('.game.selection.started', () => {
+                console.log('🎮 Переход на страницу выбора игр');
+                // Все игроки переходят на страницу выбора игр
+                router.get(`/room/${roomCode}/games`, {
+                    playerId,
+                });
+            })
             .listen('.spy.game.started', (e) => {
                 console.log('🕵️ Игра Шпион началась!', e);
                 // Автоматически переходим на страницу игры
@@ -138,10 +145,22 @@ export default function Room({ roomCode, playerId, isHost, players: initialPlaye
             return;
         }
 
-        // Переходим на страницу выбора игр
-        router.get(`/room/${roomCode}/games`, {
-            playerId,
-        });
+        // Отправляем событие для всех игроков о переходе на страницу выбора игр
+        if (window.axios) {
+            window.axios.post('/room/start', {
+                roomCode,
+            })
+            .then(() => {
+                // Хост переходит на страницу выбора игр
+                router.get(`/room/${roomCode}/games`, {
+                    playerId,
+                });
+            })
+            .catch(error => {
+                console.error('Ошибка при запуске игры:', error);
+                alert('Ошибка при запуске игры');
+            });
+        }
     };
 
     const handleCopyCode = () => {

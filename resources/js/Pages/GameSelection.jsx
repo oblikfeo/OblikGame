@@ -4,19 +4,29 @@ import styles from './GameSelection.module.css';
 
 export default function GameSelection({ roomCode, playerId, isHost, players }) {
     useEffect(() => {
-        // Слушаем событие начала игры через WebSocket
+        // Слушаем события через WebSocket
         if (!window.Echo) {
             return;
         }
 
         const channel = window.Echo.channel(`room.${roomCode}`);
 
-        channel.listen('.spy.game.started', () => {
-            // Игра Шпион началась, переходим на страницу игры
-            router.get(`/room/${roomCode}/spy/game`, {
-                playerId,
+        channel
+            .listen('.game.rules.opened', (e) => {
+                // Все игроки переходят на страницу правил выбранной игры
+                const gameId = e.gameId || e.game?.id;
+                if (gameId === 'spy') {
+                    router.get(`/room/${roomCode}/spy/rules`, {
+                        playerId,
+                    });
+                }
+            })
+            .listen('.spy.game.started', () => {
+                // Игра Шпион началась, переходим на страницу игры
+                router.get(`/room/${roomCode}/spy/game`, {
+                    playerId,
+                });
             });
-        });
 
         return () => {
             window.Echo.leave(`room.${roomCode}`);
@@ -72,15 +82,32 @@ export default function GameSelection({ roomCode, playerId, isHost, players }) {
     ];
 
     const handleSelectGame = (gameId) => {
-        // Переход на страницу правил игры
-        if (gameId === 'spy') {
-            router.get(`/room/${roomCode}/spy/rules`, {
-                playerId,
-            });
-        } else {
-            // Для других игр будет свой маршрут
-            router.get(`/room/${roomCode}/game/${gameId}`, {
-                playerId,
+        // Только хост может выбирать игру
+        if (!isHost) {
+            return;
+        }
+
+        // Отправляем событие для всех игроков о переходе на страницу правил
+        if (window.axios) {
+            window.axios.post(`/room/${roomCode}/games/select`, {
+                gameId,
+            })
+            .then(() => {
+                // Хост переходит на страницу правил
+                if (gameId === 'spy') {
+                    router.get(`/room/${roomCode}/spy/rules`, {
+                        playerId,
+                    });
+                } else {
+                    // Для других игр будет свой маршрут
+                    router.get(`/room/${roomCode}/game/${gameId}`, {
+                        playerId,
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка при выборе игры:', error);
+                alert('Ошибка при выборе игры');
             });
         }
     };
@@ -133,8 +160,9 @@ export default function GameSelection({ roomCode, playerId, isHost, players }) {
                             return (
                                 <div
                                     key={game.id}
-                                    className={`${styles.gameCard} ${!canPlay ? styles.disabled : ''}`}
-                                    onClick={() => canPlay && handleSelectGame(game.id)}
+                                    className={`${styles.gameCard} ${!canPlay || !isHost ? styles.disabled : ''}`}
+                                    onClick={() => canPlay && isHost && handleSelectGame(game.id)}
+                                    title={!isHost ? 'Только хост может выбирать игру' : ''}
                                 >
                                     <div className={styles.gameIcon}>{game.icon}</div>
                                     <div className={styles.gameInfo}>

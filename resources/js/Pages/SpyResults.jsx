@@ -4,7 +4,8 @@ import styles from './SpyResults.module.css';
 
 export default function SpyResults({ roomCode, playerId, results, players }) {
     const { voteCounts, activeVoteCounts, mostVotedId, maxVotes, isSpy, location, spyIds, spyId, eliminatedPlayerId, isTie, gameEnded, continueGame } = results;
-    const [countdown, setCountdown] = useState(continueGame && !gameEnded ? 5 : null);
+    const [countdown, setCountdown] = useState(null);
+    const [showVotingResult, setShowVotingResult] = useState(true);
     
     const mostVotedPlayer = players.find(p => p.id === mostVotedId);
     const eliminatedPlayer = players.find(p => p.id === eliminatedPlayerId);
@@ -28,6 +29,13 @@ export default function SpyResults({ roomCode, playerId, results, players }) {
                 router.get(`/room/${roomCode}/spy/game`, {
                     playerId,
                 });
+            })
+            .listen('.player.eliminated', (e) => {
+                // Игрок исключен, перенаправляем на главный экран
+                if (e.playerId === playerId) {
+                    alert('Вы были исключены из игры');
+                    router.get('/');
+                }
             });
 
         return () => {
@@ -35,9 +43,34 @@ export default function SpyResults({ roomCode, playerId, results, players }) {
         };
     }, [roomCode, playerId]);
 
+    // Показываем результат голосования 5 секунд, затем переходим к следующему этапу
+    useEffect(() => {
+        if (showVotingResult && eliminatedPlayerId && !isTie) {
+            const timer = setTimeout(() => {
+                setShowVotingResult(false);
+                
+                // Если выбывший игрок - шпион, переходим к этапу угадывания слова
+                if (isEliminatedPlayerSpy) {
+                    // Переходим к этапу угадывания слова шпионом
+                    router.get(`/room/${roomCode}/spy/spy-guess`, {
+                        playerId,
+                    });
+                } else if (continueGame && !gameEnded) {
+                    // Если не шпион и игра продолжается, возвращаемся к игре через 3 секунды
+                    setCountdown(3);
+                } else if (gameEnded) {
+                    // Игра закончилась, показываем финал
+                    setShowVotingResult(false);
+                }
+            }, 5000);
+
+            return () => clearTimeout(timer);
+        }
+    }, [showVotingResult, eliminatedPlayerId, isTie, isEliminatedPlayerSpy, continueGame, gameEnded, roomCode, playerId]);
+
     // Таймер обратного отсчета для автоматического возврата к игре
     useEffect(() => {
-        if (continueGame && !gameEnded && countdown !== null) {
+        if (countdown !== null && countdown > 0) {
             const timer = setInterval(() => {
                 setCountdown(prev => {
                     if (prev <= 1) {
@@ -53,7 +86,7 @@ export default function SpyResults({ roomCode, playerId, results, players }) {
 
             return () => clearInterval(timer);
         }
-    }, [continueGame, gameEnded, countdown, roomCode, playerId]);
+    }, [countdown, roomCode, playerId]);
 
     const handleBackToRoom = () => {
         router.get(`/room/${roomCode}`, {
@@ -68,39 +101,51 @@ export default function SpyResults({ roomCode, playerId, results, players }) {
                     <h1 className={styles.title}>📊 Результаты</h1>
                 </div>
 
-                <div className={styles.resultCard}>
-                    {isEliminatedPlayerSpy ? (
-                        <>
-                            <div className={styles.resultIcon}>✅</div>
-                            <div className={styles.resultTitle}>Шпион пойман!</div>
-                            <div className={styles.resultDescription}>
-                                <strong>{eliminatedPlayer?.name}</strong> {spyIdsArray.length > 1 ? 'был одним из Шпионов' : 'был Шпионом'} и получил {maxVotes} {maxVotes === 1 ? 'голос' : 'голосов'}
-                            </div>
-                            {spyIdsArray.length > 1 && (
-                                <div className={styles.spyReveal}>
-                                    Все Шпионы: <strong>{spyPlayers.map(s => s.name).join(', ')}</strong>
-                                </div>
+                {showVotingResult && eliminatedPlayerId && !isTie ? (
+                    <div className={styles.resultCard}>
+                        <div className={styles.eliminationResult}>
+                            {isEliminatedPlayerSpy ? (
+                                <>
+                                    <div className={styles.resultIcon}>🕵️</div>
+                                    <div className={styles.eliminationTitle}>Выбывает игрок</div>
+                                    <div className={styles.eliminatedPlayerName}>{eliminatedPlayer?.name}</div>
+                                    <div className={styles.eliminationStatus}>Он <strong>ШПИОН!</strong></div>
+                                    <div className={styles.eliminationStatus} style={{ marginTop: '20px', fontSize: '16px', color: '#666' }}>
+                                        Шпион может угадать локацию перед выбыванием...
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className={styles.resultIcon}>❌</div>
+                                    <div className={styles.eliminationTitle}>Выбывает игрок</div>
+                                    <div className={styles.eliminatedPlayerName}>{eliminatedPlayer?.name}</div>
+                                    <div className={styles.eliminationStatus}>Он <strong>не был шпионом</strong></div>
+                                </>
                             )}
-                            <div className={styles.locationReveal}>
-                                Локация была: <strong>{location}</strong>
-                            </div>
-                        </>
-                    ) : (
-                        <>
-                            <div className={styles.resultIcon}>❌</div>
-                            <div className={styles.resultTitle}>Шпион не пойман!</div>
-                            <div className={styles.resultDescription}>
-                                <strong>{eliminatedPlayer?.name}</strong> получил {maxVotes} {maxVotes === 1 ? 'голос' : 'голосов'} и выбыл, но {spyIdsArray.length > 1 ? 'он не был Шпионом' : 'он не был Шпионом'}
-                            </div>
-                            <div className={styles.spyReveal}>
-                                {spyIdsArray.length > 1 ? 'Настоящие Шпионы' : 'Настоящий Шпион'}: <strong>{spyPlayers.map(s => s.name).join(', ')}</strong>
-                            </div>
-                            <div className={styles.locationReveal}>
-                                Локация была: <strong>{location}</strong>
-                            </div>
-                        </>
-                    )}
-                </div>
+                        </div>
+                    </div>
+                ) : null}
+                
+                {/* Показываем финал только если игра закончилась и это не шпион, который должен угадать */}
+                {!showVotingResult && gameEnded && !isEliminatedPlayerSpy && (
+                    <div className={styles.resultCard}>
+                        <div className={styles.resultIcon}>✅</div>
+                        <div className={styles.resultTitle}>Игра завершена!</div>
+                        <div className={styles.resultDescription}>
+                            {eliminatedPlayer && (
+                                <>
+                                    <strong>{eliminatedPlayer.name}</strong> получил {maxVotes} {maxVotes === 1 ? 'голос' : 'голосов'} и выбыл.
+                                </>
+                            )}
+                        </div>
+                        <div className={styles.spyReveal}>
+                            {spyIdsArray.length > 1 ? 'Шпионы' : 'Шпион'}: <strong>{spyPlayers.map(s => s.name).join(', ')}</strong>
+                        </div>
+                        <div className={styles.locationReveal}>
+                            Локация была: <strong>{location}</strong>
+                        </div>
+                    </div>
+                )}
 
                 <div className={styles.votesSection}>
                     <h2 className={styles.sectionTitle}>Результаты голосования</h2>
@@ -135,29 +180,41 @@ export default function SpyResults({ roomCode, playerId, results, players }) {
                     </div>
                 </div>
 
-                {continueGame && !gameEnded && countdown !== null && (
+                {showVotingResult && eliminatedPlayerId && !isTie && (
+                    <div className={styles.countdown}>
+                        {isEliminatedPlayerSpy ? (
+                            <p>Переход к угадыванию слова шпионом...</p>
+                        ) : (
+                            <p>Просмотр результатов голосования...</p>
+                        )}
+                    </div>
+                )}
+                {!showVotingResult && continueGame && !gameEnded && countdown !== null && (
                     <div className={styles.countdown}>
                         <p>Возврат к игре через {countdown} секунд...</p>
                     </div>
                 )}
 
-                <div className={styles.actions}>
-                    {gameEnded ? (
-                        <button 
-                            onClick={handleBackToRoom}
-                            className={styles.backButton}
-                        >
-                            Вернуться в комнату
-                        </button>
-                    ) : (
-                        <button 
-                            onClick={() => router.get(`/room/${roomCode}/spy/game`, { playerId })}
-                            className={styles.backButton}
-                        >
-                            Продолжить игру
-                        </button>
-                    )}
-                </div>
+                {/* Показываем кнопки действий только если не переходим к угадыванию слова */}
+                {!showVotingResult || !isEliminatedPlayerSpy ? (
+                    <div className={styles.actions}>
+                        {gameEnded ? (
+                            <button 
+                                onClick={handleBackToRoom}
+                                className={styles.backButton}
+                            >
+                                Вернуться в комнату
+                            </button>
+                        ) : !isEliminatedPlayerSpy ? (
+                            <button 
+                                onClick={() => router.get(`/room/${roomCode}/spy/game`, { playerId })}
+                                className={styles.backButton}
+                            >
+                                Продолжить игру
+                            </button>
+                        ) : null}
+                    </div>
+                ) : null}
             </div>
         </div>
     );

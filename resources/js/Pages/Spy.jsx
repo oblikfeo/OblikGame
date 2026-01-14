@@ -3,25 +3,11 @@ import { router } from '@inertiajs/react';
 import styles from './Spy.module.css';
 
 export default function Spy({ roomCode, playerId, isSpy, location, gameStatus, players: initialPlayers, readyToVote: initialReadyToVote }) {
-    const [showCard, setShowCard] = useState(true);
-    const [cardRevealed, setCardRevealed] = useState(false);
     const [players, setPlayers] = useState(initialPlayers || []);
     const [readyToVote, setReadyToVote] = useState(initialReadyToVote || []);
     const [hasVotedReady, setHasVotedReady] = useState((initialReadyToVote || []).includes(playerId));
     const [showRole, setShowRole] = useState(false);
     const [roleBlurred, setRoleBlurred] = useState(true);
-
-    useEffect(() => {
-        // Показываем карточку на 4 секунды
-        if (showCard && !cardRevealed) {
-            const timer = setTimeout(() => {
-                setShowCard(false);
-                setCardRevealed(true);
-            }, 4000);
-
-            return () => clearTimeout(timer);
-        }
-    }, [showCard, cardRevealed]);
 
     useEffect(() => {
         // Слушаем события WebSocket
@@ -38,9 +24,6 @@ export default function Spy({ roomCode, playerId, isSpy, location, gameStatus, p
                 router.reload({
                     only: ['isSpy', 'location', 'gameStatus', 'players', 'readyToVote'],
                 });
-                // Показываем карточку заново
-                setShowCard(true);
-                setCardRevealed(false);
             })
             .listen('.spy.game.continue', () => {
                 // Игра продолжается, перезагружаем страницу
@@ -60,6 +43,13 @@ export default function Spy({ roomCode, playerId, isSpy, location, gameStatus, p
                 router.get(`/room/${roomCode}/spy/voting`, {
                     playerId,
                 });
+            })
+            .listen('.player.eliminated', (e) => {
+                // Игрок исключен, перенаправляем на главный экран
+                if (e.playerId === playerId) {
+                    alert('Вы были исключены из игры');
+                    router.get('/');
+                }
             });
 
         return () => {
@@ -98,36 +88,6 @@ export default function Spy({ roomCode, playerId, isSpy, location, gameStatus, p
     };
 
     const allReady = readyToVote.length === players.length && players.length > 0;
-
-    // Показываем карточку
-    if (showCard) {
-        return (
-            <div className={styles.cardContainer}>
-                <div className={styles.card}>
-                    {isSpy ? (
-                        <>
-                            <div className={styles.cardIcon}>🕵️</div>
-                            <div className={styles.cardTitle}>Вы - Шпион!</div>
-                            <div className={styles.cardDescription}>
-                                Вы не знаете локацию.<br/>
-                                Попытайтесь угадать её или не выдать себя!
-                            </div>
-                        </>
-                    ) : (
-                        <>
-                            <div className={styles.cardIcon}>📍</div>
-                            <div className={styles.cardTitle}>Локация</div>
-                            <div className={styles.cardLocation}>{location}</div>
-                            <div className={styles.cardDescription}>
-                                Задавайте вопросы о локации,<br/>
-                                но не называйте её напрямую!
-                            </div>
-                        </>
-                    )}
-                </div>
-            </div>
-        );
-    }
 
     // Основной экран игры
     return (

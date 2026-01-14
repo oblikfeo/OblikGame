@@ -7,6 +7,7 @@ export default function SpyVoting({ roomCode, playerId, players, votes: initialV
     const [hasVoted, setHasVoted] = useState(false);
     const [votes, setVotes] = useState(initialVotes || {});
     const [voteDetails, setVoteDetails] = useState([]); // Массив объектов {voterId, voterName, votedForId, votedForName}
+    const [isTie, setIsTie] = useState(false); // Флаг ничьей
 
     useEffect(() => {
         // Проверяем, проголосовал ли уже игрок
@@ -32,6 +33,84 @@ export default function SpyVoting({ roomCode, playerId, players, votes: initialV
         setVoteDetails(initialDetails);
     }, [playerId, initialVotes, players]);
 
+    // Отдельный эффект для проверки статуса игры когда все проголосовали
+    useEffect(() => {
+        const allVoted = Object.keys(votes).length === players.length && players.length > 0;
+        
+        if (!allVoted || !hasVoted) {
+            return;
+        }
+
+        console.log('✅ Все проголосовали! Проверяем статус игры...', {
+            votesCount: Object.keys(votes).length,
+            playersCount: players.length
+        });
+        
+        let statusInterval = null;
+        
+        // Функция проверки статуса игры
+        const checkGameStatus = () => {
+            if (window.axios) {
+                window.axios.get(`/room/${roomCode}/spy/game-data`, {
+                    params: { playerId }
+                })
+                    .then(response => {
+                        console.log('📊 Статус игры:', response.data.gameStatus, response.data);
+                        if (response.data.gameStatus === 'results') {
+                            // Игра уже в статусе results, переходим на страницу результатов
+                            console.log('🚀 Переходим на страницу результатов (через проверку статуса)');
+                            if (statusInterval) {
+                                clearInterval(statusInterval);
+                            }
+                            router.get(`/room/${roomCode}/spy/results`, {
+                                playerId,
+                            });
+                        } else if (response.data.gameStatus === 'playing' && Object.keys(votes).length === players.length) {
+                            // При ничьей статус становится 'playing', показываем сообщение
+                            console.log('🔄 Ничья! Возвращаемся к обсуждению');
+                            if (statusInterval) {
+                                clearInterval(statusInterval);
+                            }
+                            setIsTie(true);
+                            setTimeout(() => {
+                                router.get(`/room/${roomCode}/spy/game`, {
+                                    playerId,
+                                });
+                            }, 3000);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Ошибка при проверке статуса игры:', error);
+                    });
+            }
+        };
+        
+        // Проверяем сразу
+        checkGameStatus();
+        
+        // Затем проверяем каждые 1 секунду (более часто для быстрого перехода)
+        statusInterval = setInterval(() => {
+            // Проверяем, что все еще все проголосовали
+            const currentVotesCount = Object.keys(votes).length;
+            const currentPlayersCount = players.length;
+            
+            if (currentVotesCount === currentPlayersCount && currentPlayersCount > 0) {
+                checkGameStatus();
+            } else {
+                console.log(`⏸️ Не все проголосовали: ${currentVotesCount}/${currentPlayersCount}`);
+                if (statusInterval) {
+                    clearInterval(statusInterval);
+                }
+            }
+        }, 1000);
+        
+        return () => {
+            if (statusInterval) {
+                clearInterval(statusInterval);
+            }
+        };
+    }, [roomCode, playerId, votes, players, hasVoted]);
+
     useEffect(() => {
         // Слушаем события WebSocket
         if (!window.Echo) {
@@ -42,11 +121,16 @@ export default function SpyVoting({ roomCode, playerId, players, votes: initialV
 
         channel
             .listen('.spy.vote.submitted', (e) => {
+                console.log('🗳️ Голос получен:', e);
                 // Обновляем список голосов
-                setVotes(prev => ({
-                    ...prev,
-                    [e.playerId]: e.votedForId,
-                }));
+                setVotes(prev => {
+                    const updated = {
+                        ...prev,
+                        [e.playerId]: e.votedForId,
+                    };
+                    console.log(`📊 Голосов: ${Object.keys(updated).length} / ${players.length}`);
+                    return updated;
+                });
                 
                 // Добавляем детали голоса
                 setVoteDetails(prev => {
@@ -65,17 +149,41 @@ export default function SpyVoting({ roomCode, playerId, players, votes: initialV
                 // Новый раунд голосования начался
                 router.reload();
             })
-            .listen('.spy.results.ready', () => {
+            .listen('.spy.game.continue', () => {
+                // При ничьей показываем сообщение и через 3 секунды переходим к обсуждению
+                setIsTie(true);
+                setTimeout(() => {
+                    router.get(`/room/${roomCode}/spy/game`, {
+                        playerId,
+                    });
+                }, 3000);
+            })
+            .listen('.spy.results.ready', (e) => {
+                console.log('📊 Результаты готовы (WebSocket)!', e);
                 // Переходим на страницу результатов
                 router.get(`/room/${roomCode}/spy/results`, {
                     playerId,
                 });
+            })
+            .listen('spy.results.ready', (e) => {
+                // Также слушаем без точки (на случай разных форматов)
+                console.log('📊 Результаты готовы (без точки, WebSocket)!', e);
+                router.get(`/room/${roomCode}/spy/results`, {
+                    playerId,
+                });
+            })
+            .listen('.player.eliminated', (e) => {
+                // Игрок исключен, перенаправляем на главный экран
+                if (e.playerId === playerId) {
+                    alert('Вы были исключены из игры');
+                    router.get('/');
+                }
             });
 
         return () => {
             window.Echo.leave(`room.${roomCode}`);
         };
-    }, [roomCode, playerId]);
+    }, [roomCode, playerId, players]);
 
     const handleVote = (votedForId) => {
         if (hasVoted || votedForId === playerId) {
@@ -106,12 +214,20 @@ export default function SpyVoting({ roomCode, playerId, players, votes: initialV
     return (
         <div className={styles.container}>
             <div className={styles.content}>
-                <div className={styles.header}>
-                    <h1 className={styles.title}>🗳️ Голосование</h1>
-                    <p className={styles.subtitle}>
-                        Кто, по вашему мнению, является Шпионом?
-                    </p>
-                </div>
+                {isTie ? (
+                    <div className={styles.tieMessage}>
+                        <div className={styles.tieIcon}>❌</div>
+                        <h2 className={styles.tieTitle}>ГОЛОСОВАНИЕ ПРОВАЛЕНО</h2>
+                        <p className={styles.tieSubtitle}>Играем новый круг вопросов</p>
+                    </div>
+                ) : (
+                    <>
+                        <div className={styles.header}>
+                            <h1 className={styles.title}>🗳️ Голосование</h1>
+                            <p className={styles.subtitle}>
+                                Кто, по вашему мнению, является Шпионом?
+                            </p>
+                        </div>
 
                 {/* Список игроков для голосования */}
                 {!hasVoted && (
@@ -151,9 +267,16 @@ export default function SpyVoting({ roomCode, playerId, players, votes: initialV
                         <p className={styles.votedText}>
                             Вы проголосовали за <strong>{players.find(p => p.id === selectedPlayer)?.name}</strong>
                         </p>
-                        <p className={styles.waitingText}>
-                            Ожидаем остальных игроков...
-                        </p>
+                        {Object.keys(votes).length < players.length && (
+                            <p className={styles.waitingText}>
+                                Ожидаем остальных игроков...
+                            </p>
+                        )}
+                        {Object.keys(votes).length === players.length && (
+                            <p className={styles.waitingText}>
+                                Все проголосовали! Подсчитываем результаты...
+                            </p>
+                        )}
                     </div>
                 )}
 
@@ -202,11 +325,13 @@ export default function SpyVoting({ roomCode, playerId, players, votes: initialV
                     </div>
                 </div>
 
-                <div className={styles.votesInfo}>
-                    <p>
-                        Проголосовало: <strong>{Object.keys(votes).length} / {players.length}</strong>
-                    </p>
-                </div>
+                        <div className={styles.votesInfo}>
+                            <p>
+                                Проголосовало: <strong>{Object.keys(votes).length} / {players.length}</strong>
+                            </p>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );

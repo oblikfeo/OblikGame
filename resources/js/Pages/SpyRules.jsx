@@ -5,6 +5,8 @@ import styles from './SpyRules.module.css';
 export default function SpyRules({ roomCode, playerId, players: initialPlayers }) {
     const [players, setPlayers] = useState(initialPlayers || []);
     const [isLoading, setIsLoading] = useState(false);
+    const [readyPlayers, setReadyPlayers] = useState([]);
+    const [isReady, setIsReady] = useState(false);
     useEffect(() => {
         // Инициализируем список игроков
         if (initialPlayers && initialPlayers.length > 0) {
@@ -23,6 +25,10 @@ export default function SpyRules({ roomCode, playerId, players: initialPlayers }
                     console.error('Ошибка при получении списка игроков:', error);
                 });
         }
+
+        // Проверяем, готов ли текущий игрок (из кеша или сессии)
+        // Это нужно для восстановления состояния после перезагрузки страницы
+        // В реальности состояние будет синхронизироваться через WebSocket события
 
         // Слушаем событие начала игры через WebSocket
         if (!window.Echo) {
@@ -43,7 +49,16 @@ export default function SpyRules({ roomCode, playerId, players: initialPlayers }
             })
             .listen('.player.left', (e) => {
                 // Обновляем список игроков при выходе
-                setPlayers((prev) => prev.filter(p => p.id !== e.playerId));
+                setPlayers((prev) => {
+                    const filtered = prev.filter(p => p.id !== e.playerId);
+                    // Если вышедший игрок был готов, удаляем его из списка готовых
+                    setReadyPlayers((prevReady) => prevReady.filter(id => id !== e.playerId));
+                    return filtered;
+                });
+            })
+            .listen('.spy.ready.to.start', (e) => {
+                // Обновляем список готовых игроков
+                setReadyPlayers(e.readyPlayers || []);
             })
             .listen('.spy.game.started', () => {
                 // Игра началась, переходим на страницу игры
@@ -57,37 +72,43 @@ export default function SpyRules({ roomCode, playerId, players: initialPlayers }
         };
     }, [roomCode, playerId, initialPlayers]);
 
-    const handleStartGame = () => {
+    const handleReady = () => {
         if (players.length < 3) {
             alert(`Нужно минимум 3 игрока для начала игры. Сейчас в комнате: ${players.length}`);
             return;
         }
 
+        if (isReady) {
+            return; // Уже готов
+        }
+
         setIsLoading(true);
 
-        // Запускаем игру
+        // Отправляем сигнал о готовности
         if (window.axios) {
-            window.axios.post(`/room/${roomCode}/spy/start`)
-                .then(response => {
-                    // Переходим на страницу игры (остальные перейдут через WebSocket)
-                    router.get(`/room/${roomCode}/spy/game`, {
-                        playerId,
-                    });
-                })
-                .catch(error => {
-                    console.error('Ошибка при запуске игры:', error);
-                    setIsLoading(false);
-                    
-                    // Показываем понятное сообщение об ошибке
-                    const errorMessage = error.response?.data?.error || 
-                                       error.response?.data?.message || 
-                                       'Ошибка при запуске игры';
-                    alert(errorMessage);
-                });
+            window.axios.post(`/room/${roomCode}/spy/ready-to-start`, {
+                playerId,
+            })
+            .then(response => {
+                setIsReady(true);
+                setIsLoading(false);
+                setReadyPlayers(response.data.readyPlayers || []);
+            })
+            .catch(error => {
+                console.error('Ошибка при отправке готовности:', error);
+                setIsLoading(false);
+                
+                // Показываем понятное сообщение об ошибке
+                const errorMessage = error.response?.data?.error || 
+                                   error.response?.data?.message || 
+                                   'Ошибка при отправке готовности';
+                alert(errorMessage);
+            });
         }
     };
 
     const canStartGame = players.length >= 3;
+    const allReady = readyPlayers.length === players.length && players.length >= 3;
 
     return (
         <div className={styles.container}>
@@ -131,8 +152,29 @@ export default function SpyRules({ roomCode, playerId, players: initialPlayers }
                         <div className={styles.ruleItem}>
                             <div className={styles.ruleNumber}>5</div>
                             <div className={styles.ruleText}>
-                                <strong>Цель игроков:</strong> вычислить Шпиона<br/>
-                                <strong>Цель Шпиона:</strong> угадать локацию или не выдать себя
+                                После голосования выбывает игрок с наибольшим количеством голосов
+                            </div>
+                        </div>
+
+                        <div className={styles.ruleItem}>
+                            <div className={styles.ruleNumber}>6</div>
+                            <div className={styles.ruleText}>
+                                Если выбывший игрок - <strong>Шпион</strong>, он может назвать локацию перед выбыванием
+                            </div>
+                        </div>
+
+                        <div className={styles.ruleItem}>
+                            <div className={styles.ruleNumber}>7</div>
+                            <div className={styles.ruleText}>
+                                Остальные игроки голосуют: <strong>ДА</strong> (угадал) или <strong>НЕТ</strong> (не угадал)
+                            </div>
+                        </div>
+
+                        <div className={styles.ruleItem}>
+                            <div className={styles.ruleNumber}>8</div>
+                            <div className={styles.ruleText}>
+                                <strong>Цель игроков:</strong> вычислить Шпиона и сохранить локацию в тайне<br/>
+                                <strong>Цель Шпиона:</strong> угадать локацию перед выбыванием (если большинство скажет ДА - все шпионы выиграли)
                             </div>
                         </div>
                     </div>
@@ -147,16 +189,45 @@ export default function SpyRules({ roomCode, playerId, players: initialPlayers }
                             </span>
                         )}
                     </p>
+                    {readyPlayers.length > 0 && (
+                        <div className={styles.readyPlayers}>
+                            <p className={styles.readyTitle}>
+                                Готовы к игре: <strong>{readyPlayers.length} / {players.length}</strong>
+                            </p>
+                            <div className={styles.readyList}>
+                                {players
+                                    .filter(p => readyPlayers.includes(p.id))
+                                    .map(player => (
+                                        <span key={player.id} className={styles.readyPlayer}>
+                                            ✓ {player.name}
+                                        </span>
+                                    ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className={styles.actions}>
-                    <button 
-                        onClick={handleStartGame}
-                        className={`${styles.startButton} ${!canStartGame ? styles.disabled : ''}`}
-                        disabled={!canStartGame || isLoading}
-                    >
-                        {isLoading ? 'Запуск...' : canStartGame ? 'Начать игру' : `Нужно еще ${3 - players.length} игрок${3 - players.length === 1 ? '' : 'а'}`}
-                    </button>
+                    {allReady ? (
+                        <div className={styles.waitingMessage}>
+                            Все готовы! Игра скоро начнется...
+                        </div>
+                    ) : (
+                        <button 
+                            onClick={handleReady}
+                            className={`${styles.startButton} ${!canStartGame || isReady ? styles.disabled : ''}`}
+                            disabled={!canStartGame || isLoading || isReady}
+                        >
+                            {isLoading 
+                                ? 'Отправка...' 
+                                : isReady 
+                                    ? '✓ Готов!' 
+                                    : canStartGame 
+                                        ? 'Готов!' 
+                                        : `Нужно еще ${3 - players.length} игрок${3 - players.length === 1 ? '' : 'а'}`
+                            }
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

@@ -26,7 +26,12 @@ export default function Lobby() {
             alert('Введите код комнаты');
             return;
         }
-        router.post('/room/join', { playerName, roomCode: roomCode.toUpperCase() });
+        // Проверяем, что код состоит из 3 цифр
+        if (!/^\d{3}$/.test(roomCode.trim())) {
+            alert('Код комнаты должен состоять из 3 цифр');
+            return;
+        }
+        router.post('/room/join', { playerName, roomCode: roomCode.trim() });
     };
 
     return (
@@ -64,12 +69,17 @@ export default function Lobby() {
                     <form onSubmit={handleJoinRoom} className={styles.joinForm}>
                         <input
                             type="text"
-                            placeholder="Код комнаты"
+                            placeholder="Код комнаты (3 цифры)"
                             value={roomCode}
-                            onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                            onChange={(e) => {
+                                // Разрешаем только цифры, максимум 3 символа
+                                const value = e.target.value.replace(/\D/g, '').slice(0, 3);
+                                setRoomCode(value);
+                            }}
                             className={styles.input}
-                            maxLength={6}
-                            style={{ textTransform: 'uppercase' }}
+                            maxLength={3}
+                            inputMode="numeric"
+                            pattern="[0-9]{3}"
                         />
                         <div className={styles.buttons}>
                             <button 
