@@ -4,4 +4,12 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - run: ssh www-data@151.245.136.181 "cd /var/www/Laravel+React && git pull origin main && npm install && npm run build"
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H 151.245.136.181 >> ~/.ssh/known_hosts
+      
+      - name: Deploy to server
+        run: ssh www-data@151.245.136.181 "cd /var/www/Laravel+React && git pull origin main && npm install && npm run build"
