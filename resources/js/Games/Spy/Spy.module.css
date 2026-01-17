@@ -294,7 +294,6 @@
     background: linear-gradient(135deg, #51cf66 0%, #40c057 100%);
 }
 
-
 @media (max-width: 480px) {
     .card {
         padding: 40px 20px;

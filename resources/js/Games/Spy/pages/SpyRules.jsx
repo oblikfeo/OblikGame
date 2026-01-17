@@ -1,12 +1,40 @@
 import { useEffect, useState } from 'react';
 import { router } from '@inertiajs/react';
-import styles from './SpyRules.module.css';
+import { useSpyWebSocket } from '../hooks/useSpyWebSocket';
+import { useSpyGame } from '../hooks/useSpyGame';
+import styles from '../SpyRules.module.css';
 
 export default function SpyRules({ roomCode, playerId, players: initialPlayers }) {
     const [players, setPlayers] = useState(initialPlayers || []);
-    const [isLoading, setIsLoading] = useState(false);
     const [readyPlayers, setReadyPlayers] = useState([]);
     const [isReady, setIsReady] = useState(false);
+    const { readyToStart, getGameData, isLoading, error } = useSpyGame(roomCode, playerId);
+
+    // Обработка WebSocket событий
+    useSpyWebSocket(roomCode, playerId, {
+        onPlayerJoined: (e) => {
+            setPlayers((prev) => {
+                if (prev.some(p => p.id === e.player?.id)) {
+                    return prev;
+                }
+                return [...prev, e.player];
+            });
+        },
+        onPlayerLeft: (e) => {
+            setPlayers((prev) => {
+                const filtered = prev.filter(p => p.id !== e.playerId);
+                setReadyPlayers((prevReady) => prevReady.filter(id => id !== e.playerId));
+                return filtered;
+            });
+        },
+        onReadyToStart: (e) => {
+            setReadyPlayers(e.readyPlayers || []);
+        },
+        onGameStarted: () => {
+            router.get(`/room/${roomCode}/spy/game`, { playerId });
+        },
+    });
+
     useEffect(() => {
         // Инициализируем список игроков
         if (initialPlayers && initialPlayers.length > 0) {
@@ -26,84 +54,77 @@ export default function SpyRules({ roomCode, playerId, players: initialPlayers }
                 });
         }
 
-        // Проверяем, готов ли текущий игрок (из кеша или сессии)
-        // Это нужно для восстановления состояния после перезагрузки страницы
-        // В реальности состояние будет синхронизироваться через WebSocket события
-
-        // Слушаем событие начала игры через WebSocket
-        if (!window.Echo) {
-            return;
-        }
-
-        const channel = window.Echo.channel(`room.${roomCode}`);
-
-        channel
-            .listen('.player.joined', (e) => {
-                // Обновляем список игроков при присоединении
-                setPlayers((prev) => {
-                    if (prev.some(p => p.id === e.player?.id)) {
-                        return prev;
-                    }
-                    return [...prev, e.player];
-                });
-            })
-            .listen('.player.left', (e) => {
-                // Обновляем список игроков при выходе
-                setPlayers((prev) => {
-                    const filtered = prev.filter(p => p.id !== e.playerId);
-                    // Если вышедший игрок был готов, удаляем его из списка готовых
-                    setReadyPlayers((prevReady) => prevReady.filter(id => id !== e.playerId));
-                    return filtered;
-                });
-            })
-            .listen('.spy.ready.to.start', (e) => {
-                // Обновляем список готовых игроков
-                setReadyPlayers(e.readyPlayers || []);
-            })
-            .listen('.spy.game.started', () => {
-                // Игра началась, переходим на страницу игры
-                router.get(`/room/${roomCode}/spy/game`, {
-                    playerId,
-                });
-            });
-
-        return () => {
-            window.Echo.leave(`room.${roomCode}`);
+        // Проверка статуса игры при загрузке (только если игра уже начата)
+        // Выполняем только один раз при монтировании
+        let isMounted = true;
+        let hasChecked = false;
+        
+        const checkGameStatus = async () => {
+            // Проверяем только один раз
+            if (hasChecked) return;
+            hasChecked = true;
+            
+            try {
+                const gameData = await getGameData();
+                if (!isMounted) return;
+                
+                // Если игра не начата (null), остаемся на странице правил
+                if (!gameData) {
+                    return;
+                }
+                
+                // Если игра уже идет, перенаправляем на нужную страницу
+                if (gameData.gameStatus === 'playing') {
+                    router.get(`/room/${roomCode}/spy/game`, { playerId });
+                } else if (gameData.gameStatus === 'voting') {
+                    router.get(`/room/${roomCode}/spy/voting`, { playerId });
+                } else if (gameData.gameStatus === 'results') {
+                    router.get(`/room/${roomCode}/spy/results`, { playerId });
+                } else if (gameData.gameStatus === 'guess') {
+                    router.get(`/room/${roomCode}/spy/spy-guess`, { playerId });
+                }
+                // Если gameStatus === 'rules' или null, остаемся на этой странице
+            } catch (error) {
+                if (!isMounted) return;
+                
+                // Игнорируем ошибки при проверке статуса (игра может быть еще не начата)
+                // Логируем только серьезные ошибки
+                if (error.response?.status !== 404) {
+                    console.error('Ошибка при проверке статуса игры:', error);
+                }
+            }
         };
-    }, [roomCode, playerId, initialPlayers]);
 
-    const handleReady = () => {
+        // Задержка перед проверкой, чтобы избежать конфликтов
+        const timer = setTimeout(() => {
+            checkGameStatus();
+        }, 100);
+        
+        return () => {
+            isMounted = false;
+            clearTimeout(timer);
+        };
+    }, [roomCode, initialPlayers, playerId]); // Убираем getGameData из зависимостей
+
+    const handleReady = async () => {
         if (players.length < 3) {
             alert(`Нужно минимум 3 игрока для начала игры. Сейчас в комнате: ${players.length}`);
             return;
         }
 
         if (isReady) {
-            return; // Уже готов
+            return;
         }
 
-        setIsLoading(true);
-
-        // Отправляем сигнал о готовности
-        if (window.axios) {
-            window.axios.post(`/room/${roomCode}/spy/ready-to-start`, {
-                playerId,
-            })
-            .then(response => {
-                setIsReady(true);
-                setIsLoading(false);
-                setReadyPlayers(response.data.readyPlayers || []);
-            })
-            .catch(error => {
-                console.error('Ошибка при отправке готовности:', error);
-                setIsLoading(false);
-                
-                // Показываем понятное сообщение об ошибке
-                const errorMessage = error.response?.data?.error || 
-                                   error.response?.data?.message || 
-                                   'Ошибка при отправке готовности';
-                alert(errorMessage);
-            });
+        try {
+            const response = await readyToStart();
+            setIsReady(true);
+            setReadyPlayers(response?.readyPlayers || []);
+        } catch (err) {
+            // Ошибка уже обработана в хуке
+            if (error) {
+                alert(error);
+            }
         }
     };
 

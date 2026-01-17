@@ -31,15 +31,74 @@ window.Echo = new Echo({
     enabledTransports: ['ws', 'wss'],
 });
 
+// Настройка автоматического переподключения
+let reconnectAttempts = 0;
+const maxReconnectAttempts = 10;
+const reconnectDelay = 3000; // 3 секунды
+let reconnectTimeout = null;
+let isReconnecting = false;
+
+const attemptReconnect = () => {
+    if (isReconnecting || reconnectAttempts >= maxReconnectAttempts) {
+        if (reconnectAttempts >= maxReconnectAttempts) {
+            console.error('❌ Достигнуто максимальное количество попыток переподключения');
+        }
+        return;
+    }
+
+    isReconnecting = true;
+    reconnectAttempts++;
+    console.log(`🔄 Попытка переподключения ${reconnectAttempts}/${maxReconnectAttempts}...`);
+
+    reconnectTimeout = setTimeout(() => {
+        try {
+            window.Echo.connector.pusher.connect();
+        } catch (error) {
+            console.error('❌ Ошибка при переподключении:', error);
+            isReconnecting = false;
+            attemptReconnect();
+        }
+    }, reconnectDelay);
+};
+
 // Отладка подключения
 window.Echo.connector.pusher.connection.bind('connected', () => {
     console.log('✅ WebSocket подключен к Reverb');
+    reconnectAttempts = 0;
+    isReconnecting = false;
+    if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+        reconnectTimeout = null;
+    }
+    
+    // Синхронизация при восстановлении соединения
+    // Отправляем событие для синхронизации состояния
+    if (window.dispatchEvent) {
+        window.dispatchEvent(new CustomEvent('websocket:reconnected'));
+    }
 });
 
 window.Echo.connector.pusher.connection.bind('disconnected', () => {
     console.log('❌ WebSocket отключен от Reverb');
+    if (!isReconnecting) {
+        attemptReconnect();
+    }
 });
 
 window.Echo.connector.pusher.connection.bind('error', (error) => {
     console.error('❌ Ошибка WebSocket соединения:', error);
+    if (!isReconnecting && window.Echo.connector.pusher.connection.state !== 'connected') {
+        attemptReconnect();
+    }
+});
+
+// Обработка состояния соединения
+window.Echo.connector.pusher.connection.bind('state_change', (states) => {
+    console.log('🔄 Изменение состояния WebSocket:', states.previous, '->', states.current);
+    
+    if (states.current === 'disconnected' || states.current === 'failed') {
+        if (!isReconnecting) {
+            attemptReconnect();
+        }
+    }
 });

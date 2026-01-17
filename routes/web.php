@@ -30,6 +30,7 @@ Route::get('/room/{roomCode}/spy/voting', [SpyController::class, 'showVoting'])-
 Route::post('/room/{roomCode}/spy/vote', [SpyController::class, 'submitVote']);
 Route::get('/room/{roomCode}/spy/results', [SpyController::class, 'showResults'])->name('spy.results');
 Route::get('/room/{roomCode}/spy/spy-guess', [SpyController::class, 'showSpyGuess'])->name('spy.guess');
+Route::get('/room/{roomCode}/spy/guess-options', [SpyController::class, 'getGuessOptions']);
 Route::get('/room/{roomCode}/spy/guess-status', [SpyController::class, 'getGuessStatus']);
 Route::post('/room/{roomCode}/spy/submit-guess', [SpyController::class, 'submitGuess']);
 Route::post('/room/{roomCode}/spy/vote-guess', [SpyController::class, 'voteGuess']);

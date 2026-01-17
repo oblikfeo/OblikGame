@@ -147,7 +147,7 @@ class SpyController extends Controller
         // Получаем список готовых игроков (если есть)
         $readyToStart = Cache::get("spy_ready_to_start_{$roomCode}", []);
 
-        return Inertia::render('SpyRules', [
+        return Inertia::render('Games/Spy/pages/SpyRules', [
             'roomCode' => $roomCode,
             'playerId' => $playerId,
             'players' => $players,
@@ -372,7 +372,7 @@ class SpyController extends Controller
             return !in_array($player['id'], $eliminatedPlayers);
         });
         
-        return Inertia::render('Spy', [
+        return Inertia::render('Games/Spy/pages/SpyGame', [
             'roomCode' => $roomCode,
             'playerId' => $playerId,
             'isSpy' => $isSpy,
@@ -506,7 +506,7 @@ class SpyController extends Controller
         });
         $activePlayers = array_values($activePlayers);
 
-        return Inertia::render('SpyVoting', [
+        return Inertia::render('Games/Spy/pages/SpyVoting', [
             'roomCode' => $roomCode,
             'playerId' => $playerId,
             'players' => $activePlayers,
@@ -790,7 +790,7 @@ class SpyController extends Controller
             return redirect('/')->with('message', 'Вы были исключены из игры');
         }
 
-        return Inertia::render('SpyResults', [
+        return Inertia::render('Games/Spy/pages/SpyResults', [
             'roomCode' => $roomCode,
             'playerId' => $playerId,
             'results' => $gameData['results'],
@@ -840,13 +840,55 @@ class SpyController extends Controller
             return !in_array($player['id'], $eliminatedPlayers) || $player['id'] === $eliminatedPlayerId;
         });
 
-        return Inertia::render('SpyGuess', [
+        return Inertia::render('Games/Spy/pages/SpyGuess', [
             'roomCode' => $roomCode,
             'playerId' => $playerId,
             'eliminatedPlayerId' => $eliminatedPlayerId,
             'players' => array_values($activePlayers),
             'location' => $gameData['location'],
             'spyIds' => $spyIds,
+        ]);
+    }
+
+    /**
+     * Получить список локаций для выбора (4 случайных + 1 правильная)
+     */
+    public function getGuessOptions(Request $request, string $roomCode)
+    {
+        $playerId = $request->query('playerId');
+        
+        $gameData = Cache::get("spy_game_{$roomCode}");
+        
+        if (!$gameData) {
+            return response()->json(['error' => 'Игра не найдена'], 404);
+        }
+
+        $correctLocation = $gameData['location'];
+        $allLocations = $this->getLocations();
+        
+        // Убираем правильную локацию из списка
+        $otherLocations = array_filter($allLocations, function($loc) use ($correctLocation) {
+            return $loc !== $correctLocation;
+        });
+        
+        // Выбираем 4 случайные локации
+        $randomLocations = [];
+        $availableLocations = array_values($otherLocations);
+        
+        // Перемешиваем массив
+        shuffle($availableLocations);
+        
+        // Берем первые 4
+        $randomLocations = array_slice($availableLocations, 0, 4);
+        
+        // Добавляем правильную локацию
+        $options = array_merge($randomLocations, [$correctLocation]);
+        
+        // Перемешиваем еще раз, чтобы правильная локация не всегда была последней
+        shuffle($options);
+        
+        return response()->json([
+            'options' => $options,
         ]);
     }
 
