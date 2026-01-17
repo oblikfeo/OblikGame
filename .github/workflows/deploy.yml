@@ -4,19 +4,4 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Setup SSH
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H 151.245.136.181 >> ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts
-          eval $(ssh-agent -s)
-          ssh-add ~/.ssh/id_rsa
-          ssh-add -l
-      
-      - name: Deploy to server
-        run: ssh -o StrictHostKeyChecking=no www-data@151.245.136.181 "cd /var/www/Laravel+React && git pull origin main && npm install && npm run build"
+      - run: ssh -i   secrets.SSH_PRIVATE_KEY   www-data@151.245.136.181 "id && pwd && ls -la /var/www/Laravel+React"
