@@ -851,7 +851,7 @@ class SpyController extends Controller
     }
 
     /**
-     * Получить список локаций для выбора (4 случайных + 1 правильная)
+     * Получить список локаций для выбора (9-11 случайных + 1 правильная, итого 10-12)
      */
     public function getGuessOptions(Request $request, string $roomCode)
     {
@@ -871,15 +871,16 @@ class SpyController extends Controller
             return $loc !== $correctLocation;
         });
         
-        // Выбираем 4 случайные локации
+        // Выбираем 9-11 случайных локаций (случайное число между 9 и 11)
+        $randomCount = rand(9, 11);
         $randomLocations = [];
         $availableLocations = array_values($otherLocations);
         
         // Перемешиваем массив
         shuffle($availableLocations);
         
-        // Берем первые 4
-        $randomLocations = array_slice($availableLocations, 0, 4);
+        // Берем нужное количество случайных локаций
+        $randomLocations = array_slice($availableLocations, 0, $randomCount);
         
         // Добавляем правильную локацию
         $options = array_merge($randomLocations, [$correctLocation]);
