@@ -19,10 +19,6 @@ export default function GameSelection({ roomCode, playerId, isHost, players }) {
                     router.get(`/room/${roomCode}/spy/rules`, {
                         playerId,
                     });
-                } else if (gameId === 'crocodile') {
-                    router.get(`/room/${roomCode}/crocodile/rules`, {
-                        playerId,
-                    });
                 }
             })
             .listen('.spy.game.started', () => {
@@ -45,15 +41,6 @@ export default function GameSelection({ roomCode, playerId, isHost, players }) {
             icon: '🕵️',
             minPlayers: 3,
             maxPlayers: 10,
-            enabled: true,
-        },
-        {
-            id: 'crocodile',
-            name: 'Крокодил',
-            description: 'Расскажи или покажи слово',
-            icon: '🐊',
-            minPlayers: 1,
-            maxPlayers: 20,
             enabled: true,
         },
         {
@@ -109,10 +96,6 @@ export default function GameSelection({ roomCode, playerId, isHost, players }) {
                 // Хост переходит на страницу правил
                 if (gameId === 'spy') {
                     router.get(`/room/${roomCode}/spy/rules`, {
-                        playerId,
-                    });
-                } else if (gameId === 'crocodile') {
-                    router.get(`/room/${roomCode}/crocodile/rules`, {
                         playerId,
                     });
                 } else {
@@ -187,10 +170,7 @@ export default function GameSelection({ roomCode, playerId, isHost, players }) {
                                         <p className={styles.gameDescription}>{game.description}</p>
                                         <div className={styles.gamePlayers}>
                                             <span className={styles.playersInfo}>
-                                                {game.id === 'crocodile' 
-                                                    ? 'Передавай телефон по кругу'
-                                                    : `${game.minPlayers}-${game.maxPlayers} игроков`
-                                                }
+                                                {game.minPlayers}-{game.maxPlayers} игроков
                                             </span>
                                             {!canPlay && (
                                                 <span className={styles.warning}>
