@@ -140,10 +140,8 @@ export default function Room({ roomCode, playerId, isHost, players: initialPlaye
     }, [roomCode, playerId, initialPlayers]);
 
     const handleStartGame = () => {
-        if (players.length < 2) {
-            alert('Нужно минимум 2 игрока для начала игры');
-            return;
-        }
+        // Убрана проверка на минимальное количество игроков
+        // Теперь можно начать выбор игры с любым количеством игроков
 
         // Отправляем событие для всех игроков о переходе на страницу выбора игр
         if (window.axios) {
@@ -238,12 +236,8 @@ export default function Room({ roomCode, playerId, isHost, players: initialPlaye
                         <button 
                             onClick={handleStartGame}
                             className={`${styles.button} ${styles.buttonPrimary}`}
-                            disabled={players.length < 2}
                         >
-                            {players.length < 2 
-                                ? `Нужно еще ${2 - players.length} игрок${2 - players.length === 1 ? '' : players.length === 0 ? 'ов' : 'а'}`
-                                : 'Начать игру'
-                            }
+                            Начать игру
                         </button>
                     )}
                     <button 

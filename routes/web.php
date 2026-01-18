@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\SpyController;
+use App\Http\Controllers\CrocodileController;
 
 Route::get('/', function () {
     return Inertia::render('Lobby');
@@ -34,3 +35,14 @@ Route::get('/room/{roomCode}/spy/guess-options', [SpyController::class, 'getGues
 Route::get('/room/{roomCode}/spy/guess-status', [SpyController::class, 'getGuessStatus']);
 Route::post('/room/{roomCode}/spy/submit-guess', [SpyController::class, 'submitGuess']);
 Route::post('/room/{roomCode}/spy/vote-guess', [SpyController::class, 'voteGuess']);
+
+// Маршруты для игры Крокодил
+Route::get('/room/{roomCode}/crocodile/rules', [CrocodileController::class, 'showRules'])->name('crocodile.rules');
+Route::post('/room/{roomCode}/crocodile/settings', [CrocodileController::class, 'saveSettings']);
+Route::post('/room/{roomCode}/crocodile/start', [CrocodileController::class, 'startGame']);
+Route::get('/room/{roomCode}/crocodile/pass-phone', [CrocodileController::class, 'showPassPhone'])->name('crocodile.pass-phone');
+Route::get('/room/{roomCode}/crocodile/game', [CrocodileController::class, 'showGame'])->name('crocodile.game');
+Route::get('/room/{roomCode}/crocodile/game-data', [CrocodileController::class, 'getGameData']);
+Route::post('/room/{roomCode}/crocodile/confirm-player', [CrocodileController::class, 'confirmPlayer']);
+Route::post('/room/{roomCode}/crocodile/complete-task', [CrocodileController::class, 'completeTask']);
+Route::get('/room/{roomCode}/crocodile/timeout-result', [CrocodileController::class, 'showTimeoutResult'])->name('crocodile.timeout-result');
